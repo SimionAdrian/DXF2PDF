@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DXF2PNG">
+<meta name="theme-color" content="#1f2937">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>DXF2PNG mobil</title>
+<style>
+  :root { --bg:#f2f3f5; --card:#fff; --line:#dfe3e8; --txt:#1c1f24; --muted:#6b7280; --acc:#1f6feb; --ok:#1a7f37; --err:#cf222e; --warn:#9a6700; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.4 -apple-system, "SF Pro Text", "Segoe UI", Arial, sans-serif; }
+  body { padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 84px) env(safe-area-inset-left); }
+  header { position:sticky; top:0; z-index:5; background:#1f2937; color:#fff; padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top)); margin-top:calc(-1 * env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; }
+  header h1 { font-size:17px; margin:0; font-weight:650; letter-spacing:.2px; }
+  header .sub { font-size:12px; color:#cbd5e1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .wrap { max-width:900px; margin:0 auto; padding:10px; display:flex; flex-direction:column; gap:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; font-weight:650; }
+  button, .btn { font:inherit; border:1px solid var(--line); background:#fff; color:var(--txt); border-radius:10px; padding:9px 14px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  button.primary, .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+  button:disabled { opacity:.45; }
+  button.small { padding:5px 10px; font-size:13px; border-radius:8px; }
+  .big { width:100%; padding:14px; font-size:17px; }
+  input[type=number], input[type=text], select { font:16px/1.2 inherit; padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--txt); }
+  input[type=number] { width:90px; }
+  input[type=color] { width:36px; height:30px; border:1px solid var(--line); border-radius:7px; padding:0; background:#fff; }
+  input[type=checkbox] { width:20px; height:20px; accent-color:var(--acc); }
+  .row { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin:6px 0; }
+  .row label { display:flex; align-items:center; gap:6px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .ok { color:var(--ok); } .err { color:var(--err); } .warn { color:var(--warn); font-size:13px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; }
+  .grid2 label { display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--muted); }
+  .grid2 input { width:100%; }
+  /* previzualizare */
+  .pv { position:relative; background:#e5e7eb; border-radius:10px; overflow:hidden; height:min(62vh, 520px); display:flex; align-items:center; justify-content:center; touch-action:manipulation; }
+  .pv canvas { max-width:100%; max-height:100%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.15); }
+  .pv.crop canvas { max-width:none; max-height:none; width:100%; height:100%; object-fit:none; }
+  .pv .hint { position:absolute; left:8px; bottom:8px; background:rgba(31,41,55,.78); color:#fff; font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; }
+  .pv .spin { position:absolute; right:10px; top:10px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .seg button { border:none; border-radius:0; padding:6px 12px; font-size:14px; }
+  .seg button.on { background:#e7efff; color:var(--acc); font-weight:600; }
+  /* straturi */
+  details > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary h2 { margin:0; }
+  details > summary::after { content:'▾'; color:var(--muted); font-size:14px; }
+  details[open] > summary::after { content:'▴'; }
+  .layer { display:grid; grid-template-columns:28px 40px 1fr auto; gap:6px 8px; align-items:center; padding:8px 2px; border-bottom:1px solid #eef0f3; }
+  .layer:last-child { border-bottom:none; }
+  .layer .nm { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .layer .cnt { font-size:12px; color:var(--muted); }
+  .layer .ctl { grid-column:3 / 5; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; font-size:13px; color:var(--muted); }
+  .layer .ctl input[type=number] { width:70px; padding:5px 6px; font-size:16px; }
+  .layer.off .nm, .layer.off .cnt { color:#a0a7b1; }
+  /* bara de jos */
+  .dock { position:fixed; left:0; right:0; bottom:0; z-index:6; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .dock .in { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:6px; }
+  .bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; }
+  .bar > div { height:100%; width:0; background:var(--acc); transition:width .25s; }
+  .spin { display:inline-block; width:16px; height:16px; border:2px solid #cbd5e1; border-top-color:var(--acc); border-radius:50%; animation:sp 1s linear infinite; vertical-align:middle; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .empty { text-align:center; padding:28px 10px; color:var(--muted); }
+  .empty b { color:var(--txt); }
+  .pick { position:relative; overflow:hidden; }
+  .pick input[type=file] { position:absolute; left:0; top:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:100px; z-index:2; }
+  .result { display:none; }
+  .result.on { display:block; }
+  .note { font-size:12px; color:var(--muted); margin-top:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DXF2PNG</h1>
+  <div class="sub" id="hdrSub">DWG / DXF → PNG de rezoluție mare</div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <label class="btn primary big pick" id="btnPick">Alege fișier DWG sau DXF<input type="file" id="fileInput"></label>
+    <div id="loadMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" id="cardPreview" style="display:none">
+    <div class="row" style="margin-top:0; justify-content:space-between">
+      <h2 style="margin:0">Previzualizare</h2>
+      <div class="seg"><button id="tabFull" class="on">Întreg planul</button><button id="tabCrop">Detaliu 1:1</button></div>
+    </div>
+    <div class="pv" id="pv"><canvas id="pvCanvas"></canvas><span class="hint" id="pvHint">Atinge planul ca să vezi zona la rezoluția finală</span><span class="spin" id="pvSpin" style="display:none"></span></div>
+  </div>
+
+  <div class="card" id="cardImage" style="display:none">
+    <details open>
+      <summary><h2>Imagine</h2></summary>
+      <div class="grid2" style="margin-top:8px">
+        <label>Latura lungă (px)<input type="number" id="longSide" inputmode="numeric" min="100" max="32000" step="1000"></label>
+        <label>Margine (%)<input type="number" id="marginPct" inputmode="decimal" min="0" max="50" step="0.5"></label>
+        <label>Factor grosime linii<input type="number" id="widthMul" inputmode="decimal" min="0.1" step="0.1"></label>
+        <label>Factor dimensiune texte<input type="number" id="textMul" inputmode="decimal" min="0.1" step="0.1"></label>
+        <label>Scară tipuri de linie<input type="number" id="ltScaleMul" inputmode="decimal" min="0.01" step="0.1"></label>
+        <label>Zona desenată<select id="extMode"><option value="auto">automată (fără puncte aberante)</option><option value="all">toate entitățile</option></select></label>
+      </div>
+      <div class="row">
+        <label>Fundal <input type="color" id="background"></label>
+        <label><input type="checkbox" id="transparent"> transparent</label>
+        <label><input type="checkbox" id="worldFile"> fișier .pgw (georeferențiere)</label>
+      </div>
+      <div class="muted" id="sizeInfo"></div>
+    </details>
+  </div>
+
+  <div class="card" id="cardLayers" style="display:none">
+    <details open>
+      <summary><h2>Straturi <span id="layerCount" style="text-transform:none; font-weight:400"></span></h2></summary>
+      <div class="row">
+        <button class="small" id="allOn">Toate vizibile</button>
+        <button class="small" id="allOff">Ascunde toate</button>
+        <span class="muted">Grosime toate</span><input type="number" id="bulkW" value="2" step="0.5" min="0" style="width:64px"><button class="small" id="bulkWBtn">Aplică</button>
+      </div>
+      <div id="layerList"></div>
+      <div id="warnBox" class="warn" style="margin-top:6px"></div>
+    </details>
+  </div>
+
+  <div class="card result" id="cardResult">
+    <h2>Rezultat</h2>
+    <div id="resultInfo"></div>
+    <div class="row">
+      <button class="primary" id="btnSavePng">Salvează PNG</button>
+      <button id="btnSaveZip">Salvează PNG + PGW (.zip)</button>
+    </div>
+    <div id="saveMsg" class="muted"></div>
+    <div class="note">Pe iPhone alegeți „Salvează în Fișiere”. Fișierul .zip conține PNG-ul și fișierul .pgw pentru GIS; se dezarhivează cu o atingere în aplicația Fișiere. Pentru vizualizare pe telefon folosiți „PDF vector”: PNG-ul de 24000 px apare neclar în aplicația Fișiere, pentru că iPhone-ul îl afișează micșorat.</div>
+  </div>
+
+  <div class="card">
+    <h2>Despre</h2>
+    <div class="muted">Citește DXF (orice versiune ASCII) și DWG (R14 – 2018+, prin biblioteca open-source LibreDWG, GPL-3.0). Desenează linii, polilinii, arce, cercuri, elipse, spline, hașuri pline, texte, MTEXT, blocuri și cote. Fișierele nu părăsesc telefonul: totul se procesează local.</div>
+  </div>
+</div>
+
+<div class="dock" id="dock" style="display:none">
+  <div class="in">
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="row" style="margin:0; flex-wrap:nowrap">
+      <button class="primary" id="btnRender" style="flex:1; padding:12px; font-size:16px">Generează PNG</button>
+      <button id="btnPdf" style="padding:12px; font-size:16px" title="PDF vectorial al întregului plan, clar la orice zoom pe telefon">PDF vector</button>
+      <button id="btnCancel" style="display:none">Anulează</button>
+    </div>
+    <div id="renderMsg" class="muted" style="min-height:18px"></div>
+  </div>
+</div>
+
+<script type="module">
+import { parseDXF, fromDwgDatabase, buildModel, defaultSettings } from './js/model.js';
+import { fullView, buildScene, renderToCanvas, drawStrip, renderPNG, worldFile, makeZip } from './js/render.js';
+import { renderPDF } from './js/pdf.js';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const tick = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+let M = null, S = null, fileName = '', mode = 'full', cropPos = { cx: .5, cy: .5 };
+let result = null, busy = false, cancel = false;
+
+// ---- capacitatea de descarcare a platformei (daca exista)
+let dlPromise = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+
+// ---- setari salvate local (comoditate, pe acest telefon)
+const KEY = 'dxf2png-mobil-v1';
+function loadSaved() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
+function saveSettings() {
+  try {
+    const old = loadSaved() || { layers: {} };
+    const g = { ...S }; delete g.layers;
+    const layers = old.layers || {};
+    S.layers.forEach(l => layers[l.name.toUpperCase()] = l);
+    localStorage.setItem(KEY, JSON.stringify({ general: g, layers }));
+  } catch (e) {}
+}
+function mergeSaved(def) {
+  const sv = loadSaved();
+  if (!sv) return def;
+  const s = { ...def, ...(sv.general || {}), layers: def.layers };
+  s.layers = def.layers.map(l => { const x = sv.layers?.[l.name.toUpperCase()]; return x ? { ...l, ...x, name: l.name } : l; });
+  if (!(s.longSide > 0)) s.longSide = 24000;
+  return s;
+}
+
+// ---- incarcare fisier
+// butonul este chiar selectorul de fisiere (atingere directa, necesara pe iOS)
+$('fileInput').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (f) await loadFile(f);
+};
+
+let libPromise = null;
+async function getLibreDwg() {
+  if (!libPromise) libPromise = (async () => {
+    const mod = await import('./lib/dist/libredwg-web.js');
+    const lib = await mod.LibreDwg.create('./lib/wasm');
+    return { lib, mod };
+  })();
+  return libPromise;
+}
+
+async function loadFile(f) {
+  if (busy) return;
+  busy = true;
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  const msg = $('loadMsg');
+  try {
+    msg.innerHTML = '<span class="spin"></span> Se citește ' + esc(f.name) + ' (' + (f.size / 1e6).toFixed(1) + ' MB)…';
+    await tick();
+    const buf = await f.arrayBuffer();
+    const head = new TextDecoder('latin1').decode(new Uint8Array(buf, 0, Math.min(6, buf.byteLength)));
+    const isDwg = ext === 'dwg' || /^AC10\d\d/.test(head);
+    const t0 = performance.now();
+    let N;
+    if (isDwg) {
+      msg.innerHTML = '<span class="spin"></span> Se încarcă cititorul DWG (prima dată ~11 MB)…';
+      await tick();
+      const { lib, mod } = await getLibreDwg();
+      msg.innerHTML = '<span class="spin"></span> Se citește desenul DWG…';
+      await tick();
+      const dwg = lib.dwg_read_data(new Uint8Array(buf), mod.Dwg_File_Type.DWG);
+      if (!dwg) throw new Error('Fișierul DWG nu a putut fi citit.');
+      let db;
+      try { db = lib.convert(dwg); } finally { try { lib.dwg_free(dwg); } catch (e) {} }
+      N = fromDwgDatabase(db);
+    } else if (ext === 'dxf' || /^\s*0\s*$/m.test(new TextDecoder('latin1').decode(new Uint8Array(buf, 0, Math.min(200, buf.byteLength))))) {
+      N = parseDXF(buf);
+    } else {
+      throw new Error('Alegeți un fișier .dwg sau .dxf.');
+    }
+    await tick();
+    M = buildModel(N);
+    if (!M.prims.length && !M.texts.length) throw new Error('Desenul nu conține elemente desenabile în spațiul model.');
+    fileName = f.name.replace(/\.[^.]+$/, '');
+    S = mergeSaved(defaultSettings(M));
+    result = null; $('cardResult').classList.remove('on');
+    const dt = ((performance.now() - t0) / 1000).toFixed(1);
+    msg.innerHTML = `<span class="ok">✓</span> ${esc(f.name)} · ${M.prims.length} linii, ${M.texts.length} texte, ${M.layers.length} straturi · ${dt} s`;
+    $('hdrSub').textContent = f.name;
+    ['cardPreview', 'cardImage', 'cardLayers'].forEach(id => $(id).style.display = '');
+    $('dock').style.display = '';
+    fillGeneral(); renderLayers(); showWarnings(); updateInfo();
+    mode = 'full'; setTabs();
+    busy = false;
+    preview();
+  } catch (err) {
+    console.error(err);
+    msg.innerHTML = '<span class="err">Eroare: ' + esc(err.message || err) + '</span>';
+    busy = false;
+  }
+}
+
+// ---- setari generale
+function fillGeneral() {
+  $('longSide').value = S.longSide; $('marginPct').value = S.marginPct; $('widthMul').value = S.widthMul; $('textMul').value = S.textMul;
+  $('ltScaleMul').value = S.ltScaleMul; $('extMode').value = S.extMode || 'auto'; $('background').value = S.background || '#ffffff';
+  $('transparent').checked = !!S.transparent; $('worldFile').checked = S.worldFile !== false;
+  updateRenderLabel();
+}
+function readGeneral() {
+  S.longSide = Math.min(32000, Math.max(100, parseInt($('longSide').value) || 24000));
+  S.marginPct = Math.max(0, parseFloat($('marginPct').value) || 0);
+  S.widthMul = parseFloat($('widthMul').value) || 1; S.textMul = parseFloat($('textMul').value) || 1;
+  S.ltScaleMul = parseFloat($('ltScaleMul').value) || 1; S.extMode = $('extMode').value;
+  S.background = $('background').value; S.transparent = $('transparent').checked; S.worldFile = $('worldFile').checked;
+}
+['longSide', 'marginPct', 'widthMul', 'textMul', 'ltScaleMul', 'extMode', 'background', 'transparent', 'worldFile'].forEach(id => {
+  $(id).addEventListener(id === 'extMode' || $(id).type === 'checkbox' ? 'change' : 'input', () => { readGeneral(); updateInfo(); updateRenderLabel(); schedulePreview(); });
+});
+function updateRenderLabel() { $('btnRender').textContent = `Generează PNG ${S ? S.longSide : 24000} px`; }
+function updateInfo() {
+  if (!M) return;
+  const v = fullView(M, S);
+  const mp = v.w * v.h / 1e6;
+  $('sizeInfo').innerHTML = `Imagine finală: <b>${v.w} × ${v.h} px</b> · ${mp.toFixed(0)} megapixeli · ${v.res.toFixed(4)} unități/pixel` +
+    (mp > 600 ? ' · <span class="warn">foarte mare – poate depăși memoria telefonului</span>' : '');
+}
+
+// ---- straturi
+function renderLayers() {
+  const box = $('layerList');
+  box.innerHTML = '';
+  const meta = new Map(M.layers.map(L => [L.name.toUpperCase(), L]));
+  $('layerCount').textContent = '(' + S.layers.length + ')';
+  S.layers.forEach((l, i) => {
+    const L = meta.get(l.name.toUpperCase()) || { nLines: 0, nTexts: 0, nFills: 0 };
+    const n = L.nLines + L.nFills;
+    const d = document.createElement('div');
+    d.className = 'layer' + (l.visible ? '' : ' off');
+    d.innerHTML = `<input type="checkbox" data-k="visible" data-i="${i}" ${l.visible ? 'checked' : ''}>
+      <input type="color" data-k="color" data-i="${i}" value="${l.color}">
+      <div style="min-width:0"><div class="nm">${esc(l.name)}</div><div class="cnt">${n ? n + ' linii' : ''}${n && L.nTexts ? ' · ' : ''}${L.nTexts ? L.nTexts + ' texte' : ''}${!n && !L.nTexts ? 'gol' : ''}</div></div>
+      <div></div>
+      <div class="ctl">
+        ${n ? `<label>grosime <input type="number" inputmode="decimal" data-k="width" data-i="${i}" value="${l.width}" step="0.5" min="0"> px</label>` : ''}
+        ${L.nTexts ? `<label>text × <input type="number" inputmode="decimal" data-k="textScale" data-i="${i}" value="${l.textScale}" step="0.1" min="0"></label>` : ''}
+        ${n ? `<label><input type="checkbox" data-k="useLtype" data-i="${i}" ${l.useLtype ? 'checked' : ''}> tip linie</label>` : ''}
+      </div>`;
+    box.appendChild(d);
+  });
+}
+$('layerList').addEventListener('input', e => {
+  const t = e.target, i = t.dataset.i, k = t.dataset.k;
+  if (i === undefined) return;
+  const l = S.layers[i];
+  if (k === 'visible' || k === 'useLtype') { l[k] = t.checked; if (k === 'visible') t.closest('.layer').classList.toggle('off', !t.checked); }
+  else if (k === 'color') l.color = t.value;
+  else l[k] = parseFloat(t.value) || 0;
+  schedulePreview();
+});
+$('allOn').onclick = () => { S.layers.forEach(l => l.visible = true); renderLayers(); schedulePreview(); };
+$('allOff').onclick = () => { S.layers.forEach(l => l.visible = false); renderLayers(); schedulePreview(); };
+$('bulkWBtn').onclick = () => { const v = parseFloat($('bulkW').value) || 0; S.layers.forEach(l => l.width = v); renderLayers(); schedulePreview(); };
+function showWarnings() {
+  const w = M.warnings || {}, k = Object.keys(w);
+  $('warnBox').textContent = k.length ? 'Nedesenate: ' + k.map(x => x + ' (' + w[x] + ')').join(', ') : '';
+}
+
+// ---- previzualizare
+let pvTimer = null, pvBusy = false, pvAgain = false;
+function schedulePreview(d = 350) { clearTimeout(pvTimer); pvTimer = setTimeout(preview, d); }
+async function preview() {
+  if (!M) return;
+  if (pvBusy) { pvAgain = true; return; }
+  pvBusy = true; $('pvSpin').style.display = '';
+  await tick();
+  try {
+    readGeneral();
+    const box = $('pv'), dpr = Math.min(3, window.devicePixelRatio || 1);
+    const full = fullView(M, S);
+    let v;
+    if (mode === 'crop') {
+      box.style.height = Math.round(Math.min(window.innerHeight * 0.62, 560)) + 'px';
+      const cw = Math.round(box.clientWidth * dpr), ch = Math.round(box.clientHeight * dpr);
+      v = { ...full, w: cw, h: ch, x0: full.x0 + (cropPos.cx * full.w - cw / 2) * full.res, y1: full.y1 - (cropPos.cy * full.h - ch / 2) * full.res };
+    } else {
+      const want = Math.round(Math.min(window.innerHeight * 0.62, 560, Math.max(220, box.clientWidth * full.h / full.w)));
+      if (Math.abs(box.clientHeight - want) > 4) box.style.height = want + 'px';
+      const size = Math.min(2400, Math.round(Math.max(box.clientWidth, box.clientHeight) * dpr));
+      const k = Math.max(full.w, full.h) / size;
+      v = { ...full, res: full.res * k, w: Math.max(1, Math.round(full.w / k)), h: Math.max(1, Math.round(full.h / k)), widthScale: 1 / k, minWidth: 0.6 * dpr };
+    }
+    const sc = buildScene(M, S, v);
+    const cv = $('pvCanvas');
+    renderToCanvas(cv, sc);
+    if (mode === 'crop') { cv.style.width = box.clientWidth + 'px'; cv.style.height = box.clientHeight + 'px'; }
+    else { cv.style.width = ''; cv.style.height = ''; }
+    saveSettings();
+  } catch (e) { console.error(e); $('renderMsg').innerHTML = '<span class="err">Previzualizare: ' + esc(e.message) + '</span>'; }
+  pvBusy = false; $('pvSpin').style.display = 'none';
+  if (pvAgain) { pvAgain = false; preview(); }
+}
+$('pvCanvas').addEventListener('click', e => {
+  if (mode === 'full') {
+    const r = e.target.getBoundingClientRect();
+    cropPos = { cx: (e.clientX - r.left) / r.width, cy: (e.clientY - r.top) / r.height };
+    mode = 'crop';
+  } else mode = 'full';
+  setTabs(); preview();
+});
+function setTabs() {
+  $('tabFull').classList.toggle('on', mode === 'full'); $('tabCrop').classList.toggle('on', mode === 'crop');
+  $('pv').classList.toggle('crop', mode === 'crop');
+  $('pvHint').textContent = mode === 'full' ? 'Atinge planul ca să vezi zona la rezoluția finală' : 'Detaliu la rezoluția finală (1 pixel = 1 pixel din PNG) · atinge pentru întreg planul';
+}
+$('tabFull').onclick = () => { mode = 'full'; setTabs(); preview(); };
+$('tabCrop').onclick = () => { mode = 'crop'; setTabs(); preview(); };
+window.addEventListener('resize', () => schedulePreview(500));
+
+// ---- generare
+$('btnCancel').onclick = () => { cancel = true; };
+$('btnRender').onclick = async () => {
+  if (!M || busy) return;
+  readGeneral();
+  busy = true; cancel = false;
+  $('btnRender').disabled = true; $('btnPdf').disabled = true; $('btnCancel').style.display = '';
+  $('cardResult').classList.remove('on'); result = null;
+  const t0 = performance.now();
+  const v = fullView(M, S);
+  try {
+    $('renderMsg').innerHTML = '<span class="spin"></span> Pregătire geometrie…';
+    await tick();
+    const scene = buildScene(M, S, v);
+    const blob = await renderPNG(scene, (k, n) => {
+      $('barFill').style.width = (100 * k / n).toFixed(1) + '%';
+      $('renderMsg').innerHTML = `<span class="spin"></span> Randare ${k}/${n} · ${((performance.now() - t0) / 1000).toFixed(0)} s`;
+    }, () => cancel);
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    result = { blob, v, name: `${fileName}_${S.longSide}px`, ext: 'png' };
+    $('renderMsg').innerHTML = `<span class="ok">Gata în ${secs} s</span> · ${v.w} × ${v.h} px · ${(blob.size / 1e6).toFixed(1)} MB`;
+    $('resultInfo').innerHTML = `<b>${esc(result.name)}.png</b><div class="muted">${v.w} × ${v.h} px · ${(blob.size / 1e6).toFixed(1)} MB${S.worldFile ? ' · cu georeferențiere .pgw' : ''}</div>`;
+    $('btnSaveZip').style.display = S.worldFile ? '' : 'none';
+    $('btnSavePng').textContent = 'Salvează PNG';
+    $('saveMsg').textContent = '';
+    $('cardResult').classList.add('on');
+    $('cardResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    saveSettings();
+  } catch (e) {
+    console.error(e);
+    $('renderMsg').innerHTML = e.message === 'Anulat' ? 'Generare anulată.' : '<span class="err">Eroare: ' + esc(e.message || e) + '</span>';
+    $('barFill').style.width = '0';
+  }
+  busy = false; $('btnRender').disabled = false; $('btnPdf').disabled = false; $('btnCancel').style.display = 'none';
+};
+
+$('btnPdf').onclick = async () => {
+  if (!M || busy) return;
+  readGeneral();
+  busy = true;
+  $('btnRender').disabled = true; $('btnPdf').disabled = true;
+  $('cardResult').classList.remove('on'); result = null;
+  const t0 = performance.now();
+  try {
+    $('renderMsg').innerHTML = '<span class="spin"></span> Se pregătește PDF-ul (fonturi, geometrie)…';
+    $('barFill').style.width = '0';
+    await tick();
+    S._title = fileName;
+    const { blob, layout } = await renderPDF(M, S, (k, n) => {
+      $('barFill').style.width = (100 * k / Math.max(1, n)).toFixed(1) + '%';
+      $('renderMsg').innerHTML = `<span class="spin"></span> PDF ${Math.round(100 * k / Math.max(1, n))}% · ${((performance.now() - t0) / 1000).toFixed(0)} s`;
+    });
+    delete S._title;
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    $('barFill').style.width = '100%';
+    result = { blob, name: `${fileName}_plan_1-${layout.scale}`, ext: 'pdf' };
+    $('renderMsg').innerHTML = `<span class="ok">PDF gata în ${secs} s</span> · ${(blob.size / 1e6).toFixed(1)} MB`;
+    $('resultInfo').innerHTML = `<b>${esc(result.name)}.pdf</b><div class="muted">PDF vectorial, o pagină de ${Math.round(layout.wmm)} × ${Math.round(layout.hmm)} mm la scara 1:${layout.scale} · ${(blob.size / 1e6).toFixed(1)} MB · liniile și textele rămân clare la orice zoom</div>`;
+    $('btnSavePng').textContent = 'Salvează PDF';
+    $('btnSaveZip').style.display = 'none';
+    $('saveMsg').textContent = '';
+    $('cardResult').classList.add('on');
+    $('cardResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    saveSettings();
+  } catch (e) {
+    console.error(e);
+    $('renderMsg').innerHTML = '<span class="err">Eroare PDF: ' + esc(e.message || e) + '</span>';
+  }
+  busy = false; $('btnRender').disabled = false; $('btnPdf').disabled = false;
+};
+
+// ---- salvare
+async function saveBlob(filename, blob) {
+  const dl = await dlPromise;
+  if (dl) {
+    try { await dl.save({ filename, data: blob }); return 'Fișier trimis spre salvare.'; }
+    catch (e) {
+      if (e && e.code === 'declined') return 'Salvare anulată.';
+      if (e && e.code === 'rate_limited') return 'O fereastră de salvare este deja deschisă.';
+      if (e && !['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(e.code)) throw new Error(e.message || e.code);
+    }
+  }
+  const file = new File([blob], filename, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return 'Fișier partajat.'; }
+    catch (e) { if (e.name === 'AbortError') return 'Salvare anulată.'; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return 'Descărcare pornită.';
+}
+$('btnSavePng').onclick = async () => {
+  if (!result) return;
+  $('saveMsg').innerHTML = '<span class="spin"></span>';
+  try { $('saveMsg').textContent = await saveBlob(result.name + '.' + (result.ext || 'png'), result.blob); }
+  catch (e) { $('saveMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+};
+$('btnSaveZip').onclick = async () => {
+  if (!result) return;
+  $('saveMsg').innerHTML = '<span class="spin"></span> Se pregătește arhiva…';
+  try {
+    const zip = await makeZip([{ name: result.name + '.png', blob: result.blob }, { name: result.name + '.pgw', blob: new Blob([worldFile(result.v)]) }]);
+    $('saveMsg').textContent = await saveBlob(result.name + '.zip', zip);
+  } catch (e) { $('saveMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+};
+</script>
+</body>
+</html>

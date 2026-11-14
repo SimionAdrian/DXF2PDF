@@ -1,0 +1,32 @@
+DXF2PNG mobil - aplicatie web pentru iPhone (DWG/DXF -> PNG 24000 px)
+=====================================================================
+
+GAZDUIRE PROPRIE (optional)
+  Copiati tot continutul acestui folder pe un server web (IIS, Apache, nginx,
+  GitHub Pages, Netlify etc.) si deschideti index.html prin https:// .
+  Nu functioneaza deschis direct din aplicatia Fisiere (file://).
+  Serverul trebuie sa trimita fisierele .wasm cu tipul application/wasm
+  (la IIS: adaugati MIME type ".wasm" -> "application/wasm").
+
+PE IPHONE
+  Safari -> deschideti adresa -> butonul Partajare -> "Adauga la ecranul
+  principal". Aplicatia apare ca o pictograma, ca o aplicatie obisnuita.
+
+UTILIZARE
+  1. "Alege fisier DWG sau DXF" (din Fisiere / iCloud Drive / OneDrive).
+  2. Previzualizare: atingeti planul pentru zona la rezolutia finala (1:1).
+  3. Imagine: latura lunga (implicit 24000 px), margine, fundal, .pgw.
+     Straturi: vizibil, culoare, grosime (px), marime text, tip linie.
+  4. "Genereaza PNG", apoi "Salveaza PNG" sau "Salveaza PNG + PGW (.zip)".
+  5. "PDF vector": tot planul pe o pagina PDF vectoriala (scara aleasa automat,
+     ex. 1:2000). Se vede clar la orice zoom in aplicatia Fisiere - folositi-l
+     pentru vizualizare pe telefon (PNG-ul de 24000 px apare micsorat/neclar).
+  Setarile se pastreaza pe telefon, pe nume de strat.
+
+LIMITE
+  - Imaginea de 24000 x 20000 px se randeaza pe benzi (sub limita de memorie
+    a Safari); PNG-ul rezultat are ~50-60 MB.
+  - DWG: citit cu LibreDWG (open source, GPL-3.0). Planurile 2D obisnuite
+    merg bine; unele obiecte (tabele, multileader, hasuri cu model, puncte)
+    nu se deseneaza.
+  - Fonturile textelor sunt cele ale telefonului (Arial, Verdana etc.).
