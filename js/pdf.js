@@ -9,7 +9,7 @@ const MAX_MM = 4800; // limita practica a unei pagini PDF (~5 m)
 const SCALES = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 500000];
 
 let fontsPromise = null;
-async function loadFonts() {
+export async function loadFonts() {
   if (!fontsPromise) fontsPromise = (async () => {
     const ot = (await import('../lib/opentype.module.js')).default;
     const get = async f => ot.parse(await (await fetch(new URL('../lib/fonts/' + f, import.meta.url))).arrayBuffer());
@@ -31,10 +31,10 @@ function pickFont(fonts, name) {
   return fonts.sans;
 }
 
-const n2 = v => { const r = Math.round(v * 100) / 100; return Object.is(r, -0) ? '0' : String(r); };
+export const n2 = v => { const r = Math.round(v * 100) / 100; return Object.is(r, -0) ? '0' : String(r); };
 
 // cale opentype (y in jos) -> operatori PDF, cu transformare
-function pathOps(cmds, tr) {
+export function pathOps(cmds, tr) {
   let s = '', cx = 0, cy = 0;
   for (const c of cmds) {
     switch (c.type) {
@@ -56,7 +56,7 @@ function pathOps(cmds, tr) {
   return s;
 }
 
-function normDash(pat) {
+export function normDash(pat) {
   let segs = [];
   for (const v of pat) {
     const on = v >= 0, len = Math.abs(v);
@@ -229,7 +229,7 @@ export async function renderPDF(M, S, onProgress) {
   return { blob: new Blob(pieces, { type: 'application/pdf' }), layout: L };
 }
 
-function textOps(t, sc, fonts, k, P) {
+export function textOps(t, sc, fonts, k, P) {
   const F = pickFont(fonts, t.font);
   const f = F.f;
   let H = t.h * sc;                  // inaltime majuscule (unitati desen)
