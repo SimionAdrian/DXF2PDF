@@ -21,6 +21,13 @@ UTILIZARE
   5. "PDF vector": tot planul pe o pagina PDF vectoriala (scara aleasa automat,
      ex. 1:2000). Se vede clar la orice zoom in aplicatia Fisiere - folositi-l
      pentru vizualizare pe telefon (PNG-ul de 24000 px apare micsorat/neclar).
+  6. "PDF planse 1:1000": planul pe planse la scara 1:1000 (cea mai mica foaie
+     A4...A0 daca incape pe una; altfel planse A0). Pagina 1 = plan de
+     ansamblu: atingeti numarul unei planse ca s-o deschideti. Pe fiecare
+     plansa: "◄ Plan de ansamblu" revine, sagetile ▲▼◄► duc la vecine.
+     Unitatile desenului trebuie sa fie metri (ex. Stereo 70).
+  7. "Harta ⤢" (in Previzualizare): planul pe tot ecranul, marire/micsorare
+     din degete, tragere, dubla atingere, butoane + − ⤢, ✕ inchide.
   Setarile se pastreaza pe telefon, pe nume de strat.
 
 LIMITE
