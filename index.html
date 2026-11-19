@@ -67,6 +67,9 @@
   .harta .hbtn { position:absolute; z-index:2; width:46px; height:46px; padding:0; font-size:22px; border-radius:12px; background:rgba(255,255,255,.95); box-shadow:0 1px 5px rgba(0,0,0,.25); }
   .harta .scara { position:absolute; z-index:2; left:12px; bottom:calc(14px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.88); border-radius:6px; padding:3px 7px; font-size:12px; display:flex; align-items:center; gap:6px; pointer-events:none; }
   .harta .scara i { display:block; height:6px; border:2px solid #111; border-top:none; }
+  .harta .hbtn.on { background:#e7efff; color:var(--acc); }
+  .harta .info { position:absolute; z-index:2; left:66px; right:66px; top:calc(16px + env(safe-area-inset-top)); text-align:center; font-size:13px; background:rgba(255,255,255,.92); border-radius:8px; padding:6px 8px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .harta .ans { position:absolute; z-index:2; right:12px; bottom:calc(14px + env(safe-area-inset-bottom)); background:var(--acc); color:#fff; border:none; font-weight:600; box-shadow:0 1px 5px rgba(0,0,0,.3); }
   .harta .spin { position:absolute; z-index:2; left:50%; top:calc(18px + env(safe-area-inset-top)); }
   .dock { position:fixed; left:0; right:0; bottom:0; z-index:6; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
   .dock .in { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:6px; }
@@ -140,7 +143,8 @@
     <h2>Rezultat</h2>
     <div id="resultInfo"></div>
     <div class="row">
-      <button class="primary" id="btnSavePng">Salvează PNG</button>
+      <button class="primary" id="btnOpen">Deschide pe ecran</button>
+      <button id="btnSavePng">Salvează PNG</button>
       <button id="btnSaveZip">Salvează PNG + PGW (.zip)</button>
     </div>
     <div id="saveMsg" class="muted"></div>
@@ -150,7 +154,7 @@
   <div class="card">
     <h2>Despre</h2>
     <div class="muted">Citește DXF (orice versiune ASCII) și DWG (R14 – 2018+, prin biblioteca open-source LibreDWG, GPL-3.0). Desenează linii, polilinii, arce, cercuri, elipse, spline, hașuri pline, texte, MTEXT, blocuri și cote. Fișierele nu părăsesc telefonul: totul se procesează local.</div>
-    <div class="muted" style="margin-top:6px">Versiunea 1.1 · Hartă cu mărire din degete · PDF pe planșe 1:1000 cu plan de ansamblu clicabil.</div>
+    <div class="muted" style="margin-top:6px">Versiunea 1.2 · Hartă cu mărire din degete și planșe 1:1000 (butonul ▦) · PDF pe planșe cu plan de ansamblu clicabil · deschidere pe ecran fără salvare.</div>
   </div>
 </div>
 
@@ -162,8 +166,9 @@
       <button id="btnCancel" style="display:none">Anulează</button>
     </div>
     <div class="row" style="margin:0; flex-wrap:nowrap">
-      <button id="btnPlanse" style="flex:1; padding:10px; font-size:15px" title="PDF pe planșe la scara 1:1000, cu plan de ansamblu clicabil">PDF planșe 1:1000</button>
-      <button id="btnPdf" style="flex:1; padding:10px; font-size:15px" title="PDF vectorial al întregului plan, pe o singură pagină">PDF o pagină</button>
+      <button id="btnHarta" style="flex:1; padding:10px 6px; font-size:15px; font-weight:600" title="Planul pe tot ecranul, mărire din degete">Hartă ⤢</button>
+      <button id="btnPlanse" style="flex:1.25; padding:10px 6px; font-size:15px" title="PDF pe planșe la scara 1:1000, cu plan de ansamblu clicabil">PDF planșe</button>
+      <button id="btnPdf" style="flex:1.1; padding:10px 6px; font-size:15px" title="PDF vectorial al întregului plan, pe o singură pagină">PDF 1 pag.</button>
     </div>
     <div id="renderMsg" class="muted" style="min-height:18px"></div>
   </div>
@@ -176,6 +181,9 @@
   <button class="hbtn" id="hartaPlus" style="right:12px; top:calc(12px + env(safe-area-inset-top))" title="Mărire">+</button>
   <button class="hbtn" id="hartaMinus" style="right:12px; top:calc(66px + env(safe-area-inset-top))" title="Micșorare">−</button>
   <button class="hbtn" id="hartaTot" style="right:12px; top:calc(120px + env(safe-area-inset-top)); font-size:19px" title="Tot planul">⤢</button>
+  <button class="hbtn" id="hartaPlanse" style="right:12px; top:calc(174px + env(safe-area-inset-top)); font-size:20px" title="Planșele 1:1000">▦</button>
+  <div class="info" id="hartaInfo" hidden></div>
+  <button class="ans" id="hartaAnsamblu" hidden>◄ Plan de ansamblu</button>
   <div class="scara" id="hartaScara"></div>
 </div>
 
@@ -183,7 +191,7 @@
 import { parseDXF, fromDwgDatabase, buildModel, defaultSettings } from './js/model.js';
 import { fullView, buildScene, renderToCanvas, drawStrip, renderPNG, worldFile, makeZip } from './js/render.js';
 import { renderPDF } from './js/pdf.js';
-import { renderPlanse } from './js/planse.js';
+import { renderPlanse, calculeazaPlanse } from './js/planse.js';
 import { creeazaHarta } from './js/harta.js';
 
 const $ = id => document.getElementById(id);
@@ -191,8 +199,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const tick = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 let M = null, S = null, fileName = '', mode = 'full', cropPos = { cx: .5, cy: .5 };
 let result = null, busy = false, cancel = false;
-const harta = creeazaHarta({ getM: () => M, getS: () => S });
+const harta = creeazaHarta({ getM: () => M, getS: () => S, getPlan: () => calculeazaPlanse(M, S) });
 $('tabHarta').onclick = () => { readGeneral(); harta.deschide(); };
+$('btnHarta').onclick = () => { if (!M) return; readGeneral(); harta.deschide(); };
 
 // ---- capacitatea de descarcare a platformei (daca exista)
 let dlPromise = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
@@ -355,7 +364,7 @@ function showWarnings() {
 
 // ---- previzualizare
 let pvTimer = null, pvBusy = false, pvAgain = false;
-function schedulePreview(d = 350) { clearTimeout(pvTimer); pvTimer = setTimeout(preview, d); }
+function schedulePreview(d = 350) { harta.invalideaza(); clearTimeout(pvTimer); pvTimer = setTimeout(preview, d); }
 async function preview() {
   if (!M) return;
   if (pvBusy) { pvAgain = true; return; }
@@ -495,7 +504,7 @@ $('btnPlanse').onclick = async () => {
     const secs = ((performance.now() - t0) / 1000).toFixed(1);
     const n = plan.planse.length;
     $('barFill').style.width = '100%';
-    result = { blob, name: `${fileName}_planse_1-1000`, ext: 'pdf' };
+    result = { blob, name: `${fileName}_planse_1-1000`, ext: 'pdf', planse: true };
     $('renderMsg').innerHTML = `<span class="ok">PDF gata în ${secs} s</span> · ${(blob.size / 1e6).toFixed(1)} MB`;
     $('resultInfo').innerHTML = `<b>${esc(result.name)}.pdf</b><div class="muted">` + (plan.unica
       ? `O planșă ${plan.format} (${plan.W} × ${plan.H} mm) la scara 1:1000 – planul încape pe o singură foaie`
@@ -512,6 +521,34 @@ $('btnPlanse').onclick = async () => {
     $('renderMsg').innerHTML = '<span class="err">Eroare PDF: ' + esc(e.message || e) + '</span>';
   }
   busy = false; $('btnRender').disabled = false; $('btnPdf').disabled = false; $('btnPlanse').disabled = false;
+};
+
+// ---- deschidere pe ecran, fara salvare
+let openUrl = null;
+$('btnOpen').onclick = () => {
+  if (!result) return;
+  if (result.ext === 'pdf') {
+    if (openUrl) URL.revokeObjectURL(openUrl);
+    openUrl = URL.createObjectURL(result.blob);
+    // in fila noua: vizualizatorul PDF al telefonului (mărire din degete, legături clicabile)
+    const w = window.open(openUrl, '_blank');
+    if (!w) { const a = document.createElement('a'); a.href = openUrl; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+    $('saveMsg').textContent = result.planse ? 'PDF deschis în filă nouă. Atingeți numărul unei planșe în planul de ansamblu. Puteți vedea planșele și în „Hartă ⤢” → butonul ▦.' : 'PDF deschis în filă nouă.';
+    return;
+  }
+  // PNG: imaginile foarte mari blochează Safari pe iPhone (memorie); le afișăm în Hartă,
+  // care desenează exact același plan, cu mărire din degete.
+  const px = result.v.w * result.v.h;
+  const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!iOS && px <= 120e6) {
+    if (openUrl) URL.revokeObjectURL(openUrl);
+    openUrl = URL.createObjectURL(result.blob);
+    if (!window.open(openUrl, '_blank')) harta.deschide();
+    $('saveMsg').textContent = 'PNG deschis în filă nouă.';
+  } else {
+    harta.deschide();
+    $('saveMsg').textContent = `PNG-ul are ${(px / 1e6).toFixed(0)} megapixeli – prea mare pentru a fi afișat direct în Safari, de aceea e arătat în Hartă (același desen, mărire din degete).`;
+  }
 };
 
 // ---- salvare

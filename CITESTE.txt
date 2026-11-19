@@ -26,8 +26,13 @@ UTILIZARE
      ansamblu: atingeti numarul unei planse ca s-o deschideti. Pe fiecare
      plansa: "◄ Plan de ansamblu" revine, sagetile ▲▼◄► duc la vecine.
      Unitatile desenului trebuie sa fie metri (ex. Stereo 70).
-  7. "Harta ⤢" (in Previzualizare): planul pe tot ecranul, marire/micsorare
-     din degete, tragere, dubla atingere, butoane + − ⤢, ✕ inchide.
+  7. "Harta ⤢" (jos, langa PDF, si in Previzualizare): planul pe tot ecranul,
+     marire/micsorare din degete, tragere, dubla atingere, butoane + − ⤢,
+     ✕ inchide. Butonul ▦ arata planșele 1:1000 cu numere: atingeti o plansa
+     ca s-o deschideti; "◄ Plan de ansamblu" revine.
+  8. "Deschide pe ecran": PDF-ul se deschide intr-o fila noua, fara salvare.
+     PNG-ul de 24000 px e prea mare pentru Safari pe iPhone, asa ca se
+     afiseaza in Harta (acelasi desen, cu marire din degete).
   Setarile se pastreaza pe telefon, pe nume de strat.
 
 LIMITE
