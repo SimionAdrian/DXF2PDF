@@ -71,6 +71,20 @@
   .harta .info { position:absolute; z-index:2; left:66px; right:66px; top:calc(16px + env(safe-area-inset-top)); text-align:center; font-size:13px; background:rgba(255,255,255,.92); border-radius:8px; padding:6px 8px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
   .harta .ans { position:absolute; z-index:2; right:12px; bottom:calc(14px + env(safe-area-inset-bottom)); background:var(--acc); color:#fff; border:none; font-weight:600; box-shadow:0 1px 5px rgba(0,0,0,.3); }
   .harta .spin { position:absolute; z-index:2; left:50%; top:calc(18px + env(safe-area-inset-top)); }
+  .viz { position:fixed; inset:0; z-index:60; background:#e5e7eb; display:flex; flex-direction:column; -webkit-user-select:none; user-select:none; }
+  .viz .bara { display:flex; align-items:center; gap:6px; padding:8px 8px; background:#1f2937; color:#fff; }
+  .viz .bara.sus { padding-top:calc(8px + env(safe-area-inset-top)); }
+  .viz .bara.jos { padding-bottom:calc(8px + env(safe-area-inset-bottom)); justify-content:space-between; }
+  .viz .bara button { background:#374151; border:none; color:#fff; min-width:42px; height:40px; padding:0 10px; font-size:18px; border-radius:9px; }
+  .viz .bara button:disabled { opacity:.35; }
+  .viz .bara .tit { flex:1; min-width:0; font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; }
+  .viz .zona { position:relative; flex:1; overflow:hidden; touch-action:none; }
+  .viz canvas { position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform; }
+  .viz .spin { position:absolute; right:12px; top:12px; z-index:2; }
+  .viz .lista { position:absolute; z-index:3; right:8px; top:8px; bottom:8px; width:min(260px, 70vw); overflow:auto; background:#fff; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.3); padding:6px; display:flex; flex-direction:column; gap:4px; }
+  .viz .lista button { text-align:left; justify-content:flex-start; border:none; padding:11px 12px; font-size:15px; }
+  .viz .lista button.on { background:#e7efff; color:var(--acc); font-weight:600; }
+  .viz .msg { position:absolute; z-index:2; left:10px; right:10px; bottom:10px; text-align:center; background:rgba(31,41,55,.85); color:#fff; font-size:13px; padding:7px 10px; border-radius:8px; pointer-events:none; }
   .dock { position:fixed; left:0; right:0; bottom:0; z-index:6; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
   .dock .in { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:6px; }
   .bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; }
@@ -154,7 +168,7 @@
   <div class="card">
     <h2>Despre</h2>
     <div class="muted">Citește DXF (orice versiune ASCII) și DWG (R14 – 2018+, prin biblioteca open-source LibreDWG, GPL-3.0). Desenează linii, polilinii, arce, cercuri, elipse, spline, hașuri pline, texte, MTEXT, blocuri și cote. Fișierele nu părăsesc telefonul: totul se procesează local.</div>
-    <div class="muted" style="margin-top:6px">Versiunea 1.2 · Hartă cu mărire din degete și planșe 1:1000 (butonul ▦) · PDF pe planșe cu plan de ansamblu clicabil · deschidere pe ecran fără salvare.</div>
+    <div class="muted" style="margin-top:6px">Versiunea 1.3 · PDF-ul se deschide în aplicație (✕ revine, ☰ lista planșelor) · Hartă cu mărire din degete și planșe 1:1000 (butonul ▦) · PDF pe planșe cu plan de ansamblu clicabil · deschidere pe ecran fără salvare.</div>
   </div>
 </div>
 
@@ -187,12 +201,32 @@
   <div class="scara" id="hartaScara"></div>
 </div>
 
+<div class="viz" id="viz" hidden>
+  <div class="bara sus">
+    <button id="vizInchide" title="Închide și revino în aplicație" style="font-size:20px">✕</button>
+    <div class="tit" id="vizTitlu"></div>
+    <button id="vizCuprins" title="Lista planșelor (semne de carte)">☰ Planșe</button>
+  </div>
+  <div class="zona" id="vizZona">
+    <canvas id="vizCanvas"></canvas>
+    <span class="spin" id="vizSpin" style="display:none"></span>
+    <div class="lista" id="vizLista" hidden></div>
+    <div class="msg" id="vizMsg" hidden>Atingeți numărul unei planșe ca s-o deschideți · ☰ Planșe = lista</div>
+  </div>
+  <div class="bara jos">
+    <span id="vizNav" style="display:flex; gap:6px; align-items:center"><button id="vizPrev">◄</button><span id="vizPag" style="min-width:44px; text-align:center; font-size:14px"></span><button id="vizNext">►</button></span>
+    <span style="display:flex; gap:6px"><button id="vizMinus">−</button><button id="vizPlus">+</button><button id="vizTot" style="font-size:16px">⤢</button></span>
+    <button id="vizSalv" title="Salvează PDF-ul" style="font-size:15px">Salvează</button>
+  </div>
+</div>
+
 <script type="module">
 import { parseDXF, fromDwgDatabase, buildModel, defaultSettings } from './js/model.js';
 import { fullView, buildScene, renderToCanvas, drawStrip, renderPNG, worldFile, makeZip } from './js/render.js';
 import { renderPDF } from './js/pdf.js';
 import { renderPlanse, calculeazaPlanse } from './js/planse.js';
 import { creeazaHarta } from './js/harta.js';
+import { creeazaVizualizator } from './js/vizualizator.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -201,6 +235,7 @@ let M = null, S = null, fileName = '', mode = 'full', cropPos = { cx: .5, cy: .5
 let result = null, busy = false, cancel = false;
 const harta = creeazaHarta({ getM: () => M, getS: () => S, getPlan: () => calculeazaPlanse(M, S) });
 $('tabHarta').onclick = () => { readGeneral(); harta.deschide(); };
+const viz = creeazaVizualizator({ onSalveaza: () => $('btnSavePng').click() });
 $('btnHarta').onclick = () => { if (!M) return; readGeneral(); harta.deschide(); };
 
 // ---- capacitatea de descarcare a platformei (daca exista)
@@ -528,12 +563,9 @@ let openUrl = null;
 $('btnOpen').onclick = () => {
   if (!result) return;
   if (result.ext === 'pdf') {
-    if (openUrl) URL.revokeObjectURL(openUrl);
-    openUrl = URL.createObjectURL(result.blob);
-    // in fila noua: vizualizatorul PDF al telefonului (mărire din degete, legături clicabile)
-    const w = window.open(openUrl, '_blank');
-    if (!w) { const a = document.createElement('a'); a.href = openUrl; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-    $('saveMsg').textContent = result.planse ? 'PDF deschis în filă nouă. Atingeți numărul unei planșe în planul de ansamblu. Puteți vedea planșele și în „Hartă ⤢” → butonul ▦.' : 'PDF deschis în filă nouă.';
+    // vizualizatorul din aplicatie: X revine aici, ☰ = lista planselor, legaturi clicabile
+    viz.deschide(result.blob, result.name);
+    $('saveMsg').textContent = '';
     return;
   }
   // PNG: imaginile foarte mari blochează Safari pe iPhone (memorie); le afișăm în Hartă,

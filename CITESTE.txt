@@ -30,7 +30,9 @@ UTILIZARE
      marire/micsorare din degete, tragere, dubla atingere, butoane + − ⤢,
      ✕ inchide. Butonul ▦ arata planșele 1:1000 cu numere: atingeti o plansa
      ca s-o deschideti; "◄ Plan de ansamblu" revine.
-  8. "Deschide pe ecran": PDF-ul se deschide intr-o fila noua, fara salvare.
+  8. "Deschide pe ecran": PDF-ul se deschide in aplicatie, fara salvare:
+     ✕ revine in aplicatie, "☰ Planse" = lista planselor (semne de carte),
+     ◄ ► pagina anterioara/urmatoare, numerele din ansamblu se pot atinge.
      PNG-ul de 24000 px e prea mare pentru Safari pe iPhone, asa ca se
      afiseaza in Harta (acelasi desen, cu marire din degete).
   Setarile se pastreaza pe telefon, pe nume de strat.
@@ -42,3 +44,5 @@ LIMITE
     merg bine; unele obiecte (tabele, multileader, hasuri cu model, puncte)
     nu se deseneaza.
   - Fonturile textelor sunt cele ale telefonului (Arial, Verdana etc.).
+
+PDF.js (Mozilla, Apache-2.0) in lib/pdfjs - vizualizatorul PDF din aplicatie.
