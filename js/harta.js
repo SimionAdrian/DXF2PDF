@@ -2,7 +2,7 @@
 // tragere, dublu-atingere si rotita mouse-ului. Fara cautare / identificare.
 import { fullView, buildScene, drawStrip } from './render.js';
 
-export function creeazaHarta({ getM, getS }) {
+export function creeazaHarta({ getM, getS, getPlan }) {
   const el = document.getElementById('harta');
   const cv = document.getElementById('hartaCanvas');
   const scara = document.getElementById('hartaScara');
@@ -13,7 +13,11 @@ export function creeazaHarta({ getM, getS }) {
   let timer = null, lucru = false, iar = false;
   let W = 0, H = 0, dpr = 1;
   const ptr = new Map();
-  let start = null, ultimTap = 0, mutat = false;
+  let start = null, ultimTap = 0, mutat = false, tapTimer = null;
+  let plan = null, arataPlanse = false, plansaDeschisa = null;
+  const info = document.getElementById('hartaInfo');
+  const btnAns = document.getElementById('hartaAnsamblu');
+  const btnPl = document.getElementById('hartaPlanse');
 
   function dim() {
     W = el.clientWidth; H = el.clientHeight;
@@ -51,11 +55,66 @@ export function creeazaHarta({ getM, getS }) {
       if (cv.width !== v.w || cv.height !== v.h) { cv.width = v.w; cv.height = v.h; }
       cv.style.width = W + 'px'; cv.style.height = H + 'px';
       drawStrip(ctx, scene, 0, v.h);
+      if (arataPlanse && plan) desenPlanse(v);
       randat = s;
       aplicaTransform();
     } catch (e) { console.error(e); }
     lucru = false; spin.style.display = 'none';
     if (iar) { iar = false; randeaza(); }
+  }
+  function desenPlanse(v) {
+    const X = x => (x - v.x0) / v.res, Y = y => (v.y1 - y) / v.res;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, 2 * dpr * 0.75);
+    ctx.strokeStyle = 'rgba(214,32,32,.9)';
+    if (plansaDeschisa) { const p = plansaDeschisa; ctx.save(); ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(31,111,235,.95)'; ctx.strokeRect(X(p.r[0]), Y(p.r[3]), (p.r[2] - p.r[0]) / v.res, (p.r[3] - p.r[1]) / v.res); ctx.restore(); }
+    for (const p of plan.planse) ctx.strokeRect(X(p.r[0]), Y(p.r[3]), (p.r[2] - p.r[0]) / v.res, (p.r[3] - p.r[1]) / v.res);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const p of plan.planse) {
+      const w = (p.r[2] - p.r[0]) / v.res, h = (p.r[3] - p.r[1]) / v.res;
+      const fs = Math.min(Math.min(w, h) * 0.32, 110 * dpr);
+      if (fs < 9 * dpr || w > v.w * 0.55) continue; // la planse mari (deschise) nu acoperim desenul
+      ctx.font = `600 ${fs}px -apple-system, Arial, sans-serif`;
+      const cx = X((p.r[0] + p.r[2]) / 2), cy = Y((p.r[1] + p.r[3]) / 2);
+      ctx.lineWidth = fs * 0.12; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText(String(p.nr), cx, cy);
+      ctx.fillStyle = 'rgba(214,32,32,.95)'; ctx.fillText(String(p.nr), cx, cy);
+    }
+    ctx.restore();
+  }
+  function infoPlanse() {
+    btnPl.classList.toggle('on', arataPlanse);
+    btnAns.hidden = !(arataPlanse && plan && plan.planse.length > 1 && plansaDeschisa);
+    info.hidden = !(arataPlanse && plan);
+    if (!info.hidden) info.textContent = plansaDeschisa ? `Planșa ${plansaDeschisa.nr} din ${plan.planse.length} · 1:1000`
+      : (plan.planse.length > 1 ? `${plan.planse.length} planșe A0 · atinge o planșă ca s-o deschizi` : `O planșă ${plan.format} · 1:1000`);
+  }
+  function arataZona(r) {
+    st = { cx: (r[0] + r[2]) / 2, cy: (r[1] + r[3]) / 2, res: Math.max((r[2] - r[0]) / W, (r[3] - r[1]) / (H - 60)) * 1.03 };
+    aplicaTransform(); randeaza();
+  }
+  function deschidePlansa(p) { plansaDeschisa = p; infoPlanse(); arataZona(p.r); }
+  function ansamblu() {
+    plansaDeschisa = null; infoPlanse();
+    const g = plan.grila || plan.planse[0].r;
+    arataZona(g);
+  }
+  function comutaPlanse(on) {
+    if (on && !plan) {
+      try { plan = getPlan(); } catch (e) { alert(e.message || e); on = false; }
+    }
+    arataPlanse = on && !!plan;
+    if (!arataPlanse) plansaDeschisa = null;
+    infoPlanse(); randeaza();
+  }
+  function tapSimplu(q) {
+    if (!(arataPlanse && plan)) return;
+    const wx = st.cx + (q.x - W / 2) * st.res, wy = st.cy - (q.y - H / 2) * st.res;
+    const p = plan.planse.find(p => wx >= p.r[0] && wx <= p.r[2] && wy >= p.r[1] && wy <= p.r[3]);
+    if (!p || p === plansaDeschisa) return;
+    // deschidem doar daca pe ecran se vad mai multe planse (altfel e o atingere obisnuita)
+    const wp = (p.r[2] - p.r[0]) / st.res;
+    if (wp > W * 0.9 && plansaDeschisa) return;
+    deschidePlansa(p);
   }
   const programeaza = (d = 160) => { clearTimeout(timer); timer = setTimeout(randeaza, d); };
 
@@ -130,8 +189,9 @@ export function creeazaHarta({ getM, getS }) {
     if (ptr.size === 0) {
       if (!mutat && e.type === 'pointerup') {
         const t = performance.now();
-        if (t - ultimTap < 320) { ultimTap = 0; zoom(2, q.x, q.y); return; }
+        if (t - ultimTap < 320) { ultimTap = 0; clearTimeout(tapTimer); zoom(2, q.x, q.y); return; }
         ultimTap = t;
+        clearTimeout(tapTimer); tapTimer = setTimeout(() => tapSimplu(q), 330);
       }
       if (mutat) programeaza(60);
     }
@@ -145,16 +205,24 @@ export function creeazaHarta({ getM, getS }) {
   document.getElementById('hartaMinus').onclick = () => zoom(0.5, W / 2, H / 2);
   document.getElementById('hartaTot').onclick = () => { potriveste(); aplicaTransform(); randeaza(); };
   document.getElementById('hartaInchide').onclick = () => inchide();
+  btnPl.onclick = () => comutaPlanse(!arataPlanse);
+  btnAns.onclick = () => ansamblu();
   window.addEventListener('resize', () => { if (el.hidden) return; dim(); aplicaTransform(); programeaza(250); });
 
-  function deschide() {
+  function deschide(opt = {}) {
     if (!getM()) return;
     el.hidden = false;
     document.documentElement.classList.add('fara-scroll');
     dim();
-    if (!st || !deschide.cheie || deschide.cheie !== getM()) { potriveste(); deschide.cheie = getM(); }
+    if (!st || !deschide.cheie || deschide.cheie !== getM()) { potriveste(); deschide.cheie = getM(); plan = null; arataPlanse = false; plansaDeschisa = null; }
     randat = null; cv.style.transform = '';
     actualizeazaScara();
+    if (opt.planse) {
+      if (!plan) { try { plan = getPlan(); } catch (e) { alert(e.message || e); } }
+      arataPlanse = !!plan; plansaDeschisa = null; infoPlanse();
+      if (plan) { ansamblu(); return; }
+    }
+    infoPlanse();
     randeaza();
   }
   function inchide() {
@@ -162,5 +230,7 @@ export function creeazaHarta({ getM, getS }) {
     document.documentElement.classList.remove('fara-scroll');
     cv.width = 1; cv.height = 1; randat = null; // eliberam memoria
   }
-  return { deschide, inchide, reimprospateaza: () => { if (!el.hidden) programeaza(200); } };
+  // setarile s-au schimbat: grila planselor se recalculeaza la nevoie
+  function invalideaza() { plan = null; if (arataPlanse) { arataPlanse = false; plansaDeschisa = null; infoPlanse(); } }
+  return { deschide, inchide, invalideaza, reimprospateaza: () => { if (!el.hidden) programeaza(200); } };
 }

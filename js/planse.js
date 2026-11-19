@@ -85,6 +85,9 @@ function areContinut(list, r) {
   return false;
 }
 
+// grila planselor (fara PDF) - pentru afisarea pe harta
+export function calculeazaPlanse(M, S) { return planificaPlanse(M, S, pregateste(M, S)); }
+
 // ---------------------------------------------------------------------------
 // Planificarea planselor
 // ---------------------------------------------------------------------------
