@@ -1,4 +1,4 @@
-// DXF2PNG mobil - vizualizator PDF in aplicatie (PDF.js, Mozilla, Apache-2.0).
+// DXF2PNG mobil - vizualizator PDF in aplicatie (PDF.js, Mozilla, Apache-2.0), fisierele lib/pdf.min.mjs si lib/pdf.worker.min.mjs.
 // Marire din degete, tragere, dubla atingere; legaturile din pagina (numerele
 // planselor, "Plan de ansamblu", vecinii) se pot atinge; lista planselor
 // (semnele de carte); X inchide si revine in aplicatie.
@@ -6,8 +6,8 @@
 let libP = null;
 function lib() {
   if (!libP) libP = (async () => {
-    const pj = await import('../lib/pdfjs/pdf.min.mjs');
-    pj.GlobalWorkerOptions.workerSrc = new URL('../lib/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
+    const pj = await import('../lib/pdf.min.mjs');
+    pj.GlobalWorkerOptions.workerSrc = new URL('../lib/pdf.worker.min.mjs', import.meta.url).href;
     return pj;
   })();
   return libP;
